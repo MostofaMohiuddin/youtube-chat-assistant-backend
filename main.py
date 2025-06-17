@@ -1,8 +1,10 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 import uvicorn
+from fastapi.middleware.cors import CORSMiddleware
 
 from src.youtube_transcript.routes import router as youtube_transcript_router
+from src.chat.routes import router as chat_router
 from src.common.redis.connection import RedisConnection
 
 
@@ -25,25 +27,20 @@ app = FastAPI(
     description="A simple FastAPI application with basic CRUD operations",
     version="1.0.0",
     lifespan=lifespan,
+    root_path="/api",
 )
 
-# Include YouTube transcript router
+# Include routers
 app.include_router(youtube_transcript_router)
+app.include_router(chat_router)
 
-# # Initialize Redis connection on startup
-# @app.on_event("startup")
-# async def startup_event():
-#     """Initialize connections and resources on startup"""
-#     RedisConnection.initialize()
-#     print("Redis connection established")
-
-# # Close Redis connection on shutdown
-# @app.on_event("shutdown")
-# async def shutdown_event():
-#     """Close connections and free resources on shutdown"""
-#     RedisConnection.close()
-#     print("Redis connection closed")
-
+# Enable CORS for all origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins
+    allow_methods=["*"],  # Allow all methods
+    allow_headers=["*"],  # Allow all headers
+)
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=7788, reload=True)

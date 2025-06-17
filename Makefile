@@ -66,6 +66,13 @@ start: ## Starts the service using docker
 	-p 7788:7788 --name youtube-qna \
 	--user $(id -u):$(id -g) youtube-qna
 
+dev:
+	docker compose up -d --build
+
+stop:
+	docker compose down
+
+
 clean: ## Cleans up the local-development environment except .env
 	rm -rf .mypy_cache
 	rm -rf .pytest_cache
