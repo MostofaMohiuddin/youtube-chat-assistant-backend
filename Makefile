@@ -1,72 +1,83 @@
-# Variables
-IMAGE_NAME = youtube-video-qna-backend
-DEV_IMAGE = $(IMAGE_NAME):dev
-CONTAINER_NAME = $(IMAGE_NAME)-dev
-PORT = 7788
+SHELL := /bin/bash
+POETRY_CLI := $(shell which poetry)
 
-# Default target
-.DEFAULT_GOAL := help
+# https://www.gnu.org/software/make/manual/make.html#Call-Function
+confirm := read -r -p "⚠  Are you sure? [y/N] " response && [[ "$$response" =~ ^([yY][eE][sS]|[yY])$$ ]]
 
-# Help target
-.PHONY: help
-help: ## Show this help message
-	@echo "Available targets:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+help: ## Print help for each target
+	$(info Available commands:)
+	$(info ==========================================================================================)
+	$(info )
+	@grep '^[[:alnum:]_-]*:.* ##' $(MAKEFILE_LIST) \
+		| sort | awk 'BEGIN {FS=":.* ## "}; {printf "%-25s %s\n", $$1, $$2};'
 
-# Setup target
-.PHONY: setup
-setup: ## Create virtual environment and install dependencies
-	@echo "Setting up virtual environment..."
-	@poetry config virtualenvs.in-project true
-	@poetry install --no-root
-	@echo "Virtual environment created and dependencies installed!"
 
-# Development targets
-.PHONY: dev
-dev: ## Run development server locally with poetry
-	@echo "Starting FastAPI development server..."
-	@poetry run uvicorn main:app --host 0.0.0.0 --port $(PORT) --reload
+poetry-check: ## Checks if poetry is installed
+ifeq ($(strip $(POETRY_CLI)),)
+	@echo "ERROR: Please install poetry first!"
+	exit 1
+else
+	@echo "Poetry is installed at: $(POETRY_CLI)"
+endif
 
-.PHONY: build-dev
-build-dev: ## Build development Docker image
-	@echo "Building development Docker image..."
-	@docker build -f DockerFile.dev -t $(DEV_IMAGE) .
+copy-env: ## Copies .env to .env.bak and creates a new one from .env.example
+	@echo "Your may lose .env.bak"
+	@if $(call confirm); then \
+		cp .env .env.bak || true ; \
+		cp .env.example .env ; \
+	fi
 
-.PHONY: run-dev
-run-dev: build-dev ## Build and run development Docker container
-	@echo "Running development container..."
-	@docker run --rm -d \
-		--name $(CONTAINER_NAME) \
-		-p $(PORT):$(PORT) \
-		-v $(PWD):/app \
-		$(DEV_IMAGE)
-	@echo "Development server running at http://localhost:$(PORT)"
+# poetry hits keyring for most operations which adds unnecessary (for us) dependency on keyring:
+# https://github.com/python-poetry/poetry/issues/1917#issuecomment-1235998997
+setup-no-dev-dependencies: ## Installs dependencies without dev dependencies
+	poetry env use python3.12
+	PYTHON_KEYRING_BACKEND=keyring.backends.fail.Keyring poetry install --without=dev
 
-.PHONY: run-dev-attached
-run-dev-attached: build-dev ## Build and run development Docker container (attached)
-	@echo "Running development container (attached)..."
-	@docker run --rm -it \
-		--name $(CONTAINER_NAME) \
-		-p $(PORT):$(PORT) \
-		-v $(PWD):/app \
-		$(DEV_IMAGE)
+setup-dev-dependencies: ## Installs dev dependencies
+	poetry env use python3.12
+	PYTHON_KEYRING_BACKEND=keyring.backends.fail.Keyring poetry install --only=dev
 
-# Utility targets
-.PHONY: stop
-stop: ## Stop running container
-	@echo "Stopping container..."
-	@docker stop $(CONTAINER_NAME) 2>/dev/null || true
+setup-dependencies: ## Uses python3.12 for .venv and installs dependencies
+	poetry env use python3.12
+	PYTHON_KEYRING_BACKEND=keyring.backends.fail.Keyring poetry install
 
-.PHONY: logs
-logs: ## Show container logs
-	@docker logs -f $(CONTAINER_NAME)
+setup-pre-commit: ## Installs pre-commit-hook
+	@echo "Installing pre-commit-hook"
+	poetry run pre-commit install
 
-.PHONY: shell
-shell: ## Access container shell
-	@docker exec -it $(CONTAINER_NAME) /bin/bash
+setup-basic: poetry-check setup-no-dev-dependencies ## Sets up basic environment
+	if [ ! -f .env ]; then cp .env.example .env; fi
 
-# Export requirements for Docker
-.PHONY: export-requirements
-export-requirements: ## Export poetry dependencies to requirements.txt
-	@poetry export -f requirements.txt --output requirements.txt --without-hashes
-	@echo "Requirements exported to requirements.txt"
+setup: setup-basic setup-dev-dependencies setup-pre-commit ## Sets up local-development environment
+
+run: ## Runs the service locally using poetry
+	RUNTIME_ENVIRONMENT=local poetry run python -m debugpy --listen 0.0.0.0:8001 main.py
+
+start: ## Starts the service using docker
+	docker stop youtube-qna || true
+	docker rm youtube-qna || true
+	docker build -f DockerFile.dev -t youtube-qna .
+	docker run -d \
+	-v $(HOME)/.config/gcloud:/root/.config/gcloud \
+	-v ./src:/usr/src/app/src \
+	-v ./tests:/usr/src/app/tests \
+	-v ./.env:/usr/src/app/.env \
+	-v ./main.py:/usr/src/app/main.py \
+	-p 7788:7788 --name youtube-qna \
+	--user $(id -u):$(id -g) youtube-qna
+
+clean: ## Cleans up the local-development environment except .env
+	rm -rf .mypy_cache
+	rm -rf .pytest_cache
+	rm -f .coverage
+	find . -name __pycache__ -type d -prune -exec rm -rf {} \;
+
+merge-poetry-lock: ## Merges conflicted poetry.lock
+	git diff --quiet pyproject.toml	# Ensure no unstaged change in pyproject.toml
+	git checkout HEAD -- poetry.lock
+	poetry lock --no-update
+	git add poetry.lock
+
+check-poetry-lock: ## Checks if poetry.lock corresponds to pyproject.toml and has correct content-hash
+	@echo "Checking if poetry.lock corresponds to pyproject.toml and has correct content-hash"
+	poetry check --lock
