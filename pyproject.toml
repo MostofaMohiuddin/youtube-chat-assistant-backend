@@ -1,0 +1,22 @@
+[project]
+name = "youtube-video-qna"
+version = "0.1.0"
+description = "Backend server for a Chrome extension that enables users to ask questions about YouTube videos as they watch them."
+authors = [
+    {name = "Mostofa Mohiuddin",email = "skmdmostofamohiuddin@gmail.com"}
+]
+readme = "README.md"
+package-mode = false
+requires-python = "3.12.9"
+dependencies = [
+    "youtube-transcript-api (==1.1.0)",
+    "fastapi (>=0.115.12,<0.116.0)",
+    "uvicorn (>=0.34.3,<0.35.0)",
+    "pydantic (>=2.11.7,<3.0.0)",
+    "redis (>=6.2.0,<7.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
