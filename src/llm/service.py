@@ -16,7 +16,7 @@ class LLMService:
     def get_completion(
         self,
         messages: list[dict],
-        model: str = "openai/gpt-4o",
+        model: str = "openai/gpt-4o-mini",
     ):
         """
         Get a completion from the OpenAI API.
@@ -39,7 +39,7 @@ class LLMService:
         self,
         messages: list[ChatMessage],
         transcript: list[dict],
-        model: str = "openai/gpt-4o",
+        model: str = "openai/gpt-4o-mini",
     ) -> str:
         """
         Get a completion for a YouTube transcript.
