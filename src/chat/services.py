@@ -25,7 +25,12 @@ class ChatService:
         video_id = context.get("videoId")
         if not video_id:
             raise BadRequestException("videoId is required in context")
-        transcript = self.youtube_transcript_service.get_transcript(video_id)
+        try:
+            transcript = self.youtube_transcript_service.get_transcript(video_id)
+        except Exception as e:
+            transcript = []
+            print(f"Error fetching transcript for video ID {video_id}: {str(e)}")
+
         response = llm_service.get_completion_for_youtube_transcript(
             transcript=transcript, messages=messages
         )

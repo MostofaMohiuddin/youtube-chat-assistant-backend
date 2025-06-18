@@ -1,17 +1,20 @@
+from requests import Session
 from youtube_transcript_api import YouTubeTranscriptApi
 from src.common.exceptions import NotFoundException
 from src.youtube_transcript.repository import YouTubeTranscriptRepository
-from youtube_transcript_api.proxies import GenericProxyConfig
 
 
 class YouTubeTranscriptService:
     def __init__(self):
-        self.youtube_api = YouTubeTranscriptApi(
-            proxy_config=GenericProxyConfig(
-                http_url="http://cfkmhxhr-1:khlk2uo7n1kg@p.webshare.io:80/",
-                https_url="http://cfkmhxhr-1:khlk2uo7n1kg@p.webshare.io:80/",
-            )
+        http_client = Session()
+        http_client.proxies.update(
+            {
+                "http": "http://cfkmhxhr-1:khlk2uo7n1kg@p.webshare.io:80/",
+                "https": "http://cfkmhxhr-1:khlk2uo7n1kg@p.webshare.io:80/",
+            }
         )
+
+        self.youtube_api = YouTubeTranscriptApi(http_client=http_client)
         self.youtube_transcript_repository = YouTubeTranscriptRepository()
 
     def _fetch_transcript(self, video_id: str):
