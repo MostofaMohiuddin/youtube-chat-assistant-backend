@@ -1,20 +1,17 @@
-from requests import Session
 from youtube_transcript_api import YouTubeTranscriptApi
+from youtube_transcript_api.proxies import WebshareProxyConfig
 from src.common.exceptions import NotFoundException
 from src.youtube_transcript.repository import YouTubeTranscriptRepository
 
 
 class YouTubeTranscriptService:
     def __init__(self):
-        http_client = Session()
-        http_client.proxies.update(
-            {
-                "http": "http://cfkmhxhr-1:khlk2uo7n1kg@p.webshare.io:80/",
-                "https": "http://cfkmhxhr-1:khlk2uo7n1kg@p.webshare.io:80/",
-            }
+        self.youtube_api = YouTubeTranscriptApi(
+            proxy_config=WebshareProxyConfig(
+                proxy_username="cfkmhxhr",
+                proxy_password="khlk2uo7n1kg",
+            )
         )
-
-        self.youtube_api = YouTubeTranscriptApi(http_client=http_client)
         self.youtube_transcript_repository = YouTubeTranscriptRepository()
 
     def _fetch_transcript(self, video_id: str):
@@ -25,7 +22,7 @@ class YouTubeTranscriptService:
         """
         try:
             print(f"Fetching transcript for video ID: {video_id}")
-            return self.youtube_api.get_transcript(video_id)
+            return self.youtube_api.fetch(video_id)
         except Exception as e:
             raise ValueError(
                 f"Error fetching transcript for video ID {video_id}: {str(e)}"
