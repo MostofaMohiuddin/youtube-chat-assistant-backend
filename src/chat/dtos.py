@@ -15,6 +15,7 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
+    api_key: str
     context: dict = {}
 
 

@@ -15,6 +15,7 @@ class YouTubeTranscriptService:
         :return: Transcript as a list of dictionaries.
         """
         try:
+            print(f"Fetching transcript for video ID: {video_id}")
             return self.youtube_api.get_transcript(video_id)
         except Exception as e:
             raise ValueError(
@@ -46,6 +47,7 @@ class YouTubeTranscriptService:
         # try to fetch from cache
         cached_transcript = self._get_cached_transcript(video_id)
         if cached_transcript:
+            print(f"Using cached transcript for video ID: {video_id}")
             return cached_transcript
 
         # If not cached, fetch from YouTube API
