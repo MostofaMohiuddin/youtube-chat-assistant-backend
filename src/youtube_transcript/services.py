@@ -14,7 +14,7 @@ class YouTubeTranscriptService:
         )
         self.youtube_transcript_repository = YouTubeTranscriptRepository()
 
-    def _fetch_transcript(self, video_id: str):
+    def _fetch_transcript(self, video_id: str) -> list[dict]:
         """
         Fetch the transcript for a given YouTube video ID using YouTubeTranscriptApi.
         :param video_id: The ID of the YouTube video.
@@ -22,7 +22,7 @@ class YouTubeTranscriptService:
         """
         try:
             print(f"Fetching transcript for video ID: {video_id}")
-            return self.youtube_api.fetch(video_id)
+            return self.youtube_api.fetch(video_id).to_raw_data()
         except Exception as e:
             raise ValueError(
                 f"Error fetching transcript for video ID {video_id}: {str(e)}"
