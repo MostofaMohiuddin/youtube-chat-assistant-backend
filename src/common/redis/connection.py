@@ -31,11 +31,11 @@ class RedisConnection:
 
         try:
             client = redis.Redis(
-                host="redis-13447.c262.us-east-1-3.ec2.redns.redis-cloud.com",
+                host="your_redis_host",
                 port=13447,
                 decode_responses=True,
                 username="default",
-                password="Bu4tNM3FuezD74pkUdScdimiM3Cv2CBU",
+                password="your_redis_password",
             )
             # Test connection
             client.ping()
